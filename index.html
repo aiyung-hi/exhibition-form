@@ -418,10 +418,10 @@
 
   <!-- RESPONSE -->
   <div class="page" id="page-response">
-    <div class="resp-eyebrow">給你的回應 · A response for you</div>
-    <div class="resp-zh fade-in" id="resp-zh"></div>
+    <div class="resp-eyebrow">謝謝你 · Thank you</div>
+    <div class="resp-zh fade-in" id="resp-zh">謝謝你今天來到這裡。</div>
     <div class="resp-line"></div>
-    <div class="resp-en fade-in-delay" id="resp-en"></div>
+    <div class="resp-en fade-in-delay" id="resp-en">Thank you for being here today.</div>
     <div class="resp-thanks">
       謝謝你今天的到來<br>
       <span style="font-family:'EB Garamond',serif;font-style:italic">Thank you for being here</span>
@@ -488,7 +488,7 @@ function startForm() { showPage(1); }
 
 async function nextPage() {
   if (current >= 1 && current <= 4) { showPage(current + 1); return; }
-  if (current === 5) { showPage(6); await submitForm(); }
+  if (current === 5) { submitForm(); }
 }
 
 async function submitForm() {
@@ -497,63 +497,11 @@ async function submitForm() {
   const source     = [...document.querySelectorAll('input[name="source"]:checked')].map(i => i.value);
   const impression = document.getElementById('q4-text').value.trim();
   const message    = document.getElementById('q5-text').value.trim();
-
-  try {
-    const raw = await callGemini(feelings.join('、'), area, impression, message);
-    let zhText = '謝謝你今天來到這裡。';
-    let enText = 'Thank you for coming today.';
-    try {
-      const parts = raw.split('---');
-      if (parts[0]) zhText = parts[0].trim();
-      if (parts[1]) enText = parts[1].trim().replace(/\*/g, '');
-    } catch(e) {
-      console.error('parse error:', e);
-    }
-    document.getElementById('resp-zh').textContent = zhText;
-    document.getElementById('resp-en').textContent = enText;
-    saveToSheet({ feelings, area, source, impression, message, geminiResponse: raw });
-    showPage(7);
-  } catch(e) {
-    document.getElementById('resp-zh').textContent = '謝謝你今天來到這裡。';
-    document.getElementById('resp-en').textContent = 'Thank you for coming today.';
-    showPage(7);
-  }
+  saveToSheet({ feelings, area, source, impression, message });
+  showPage(7);
 }
 
-async function callGemini(feelings, area, impression, message) {
-  const prompt = `有一個人剛剛看完一個關於女性身體與網路留言的攝影展。
 
-他的感受是：${feelings || ''}
-他說：「${impression || ''}」「${message || ''}」
-
-請給他一句真誠的祝福（繁體中文，20–35字）。
-語氣溫暖、自然，像朋友說的話。
-不要使用「展覽」「作品」「藝術家」。
-
-然後寫一行 "---"，再用英文給同樣的祝福（15–25字）。
-只輸出這兩段文字和中間的 ---，不要其他說明。`;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_KEY
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.92,
-          maxOutputTokens: 600,
-          responseMimeType: 'application/json'
-        }
-      })
-    }
-  );
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-}
 
 async function saveToSheet(payload) {
   try {
