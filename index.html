@@ -500,9 +500,17 @@ async function submitForm() {
 
   try {
     const raw = await callGemini(feelings.join('、'), area, impression, message);
-    const parts = raw.split(/\n?---\n?/);
-    document.getElementById('resp-zh').textContent = parts[0].trim();
-    document.getElementById('resp-en').textContent = (parts[1] || '').trim().replace(/\*/g, '');
+    let zhText = '謝謝你今天來到這裡。';
+    let enText = 'Thank you for coming today.';
+    try {
+      const parts = raw.split('---');
+      if (parts[0]) zhText = parts[0].trim();
+      if (parts[1]) enText = parts[1].trim().replace(/\*/g, '');
+    } catch(e) {
+      console.error('parse error:', e);
+    }
+    document.getElementById('resp-zh').textContent = zhText;
+    document.getElementById('resp-en').textContent = enText;
     saveToSheet({ feelings, area, source, impression, message, geminiResponse: raw });
     showPage(7);
   } catch(e) {
@@ -513,20 +521,17 @@ async function submitForm() {
 }
 
 async function callGemini(feelings, area, impression, message) {
-  const prompt = `你是一位詩人，正在回應一位剛看完攝影展覽「以身試驗」的觀眾。
-展覽關於女性身體自主、日常自拍，以及網路上真實的騷擾與凝視留言。
+  const prompt = `有一個人剛剛看完一個關於女性身體與網路留言的攝影展。
 
-觀眾的回答：
-- 感受：${feelings || '未填寫'}
-- 最吸引的部分：${area || '未填寫'}
-- 腦海浮現：${impression || '（未填）'}
-- 對藝術家說：${message || '（未填）'}
+他的感受是：${feelings || ''}
+他說：「${impression || ''}」「${message || ''}」
 
-請用繁體中文寫一段詩意的回應（35–55字）。
-不要說教，不要解釋展覽，不要使用「展覽」或「作品」。
-只是輕柔帶有詩意的文字，讓這個人感覺被看見。
+請給他一句真誠的祝福（繁體中文，20–35字）。
+語氣溫暖、自然，像朋友說的話。
+不要使用「展覽」「作品」「藝術家」。
 
-然後寫 "---" 分隔，用英文寫同樣詩意的回應（25–40字）。`;
+然後寫一行 "---"，再用英文給同樣的祝福（15–25字）。
+只輸出這兩段文字和中間的 ---，不要其他說明。`;
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
@@ -538,12 +543,16 @@ async function callGemini(feelings, area, impression, message) {
       },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.92, maxOutputTokens: 280 }
+        generationConfig: {
+          temperature: 0.92,
+          maxOutputTokens: 600,
+          responseMimeType: 'application/json'
+        }
       })
     }
   );
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 }
 
 async function saveToSheet(payload) {
