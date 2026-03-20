@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>以身試驗 · 觀展回饋</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200;300;400;500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0d0d0d;
+    --white: #f5f3f0;
+    --gray: #888;
+    --gray-light: #ccc;
+    --gray-dark: #333;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Noto Serif TC', 'EB Garamond', serif;
+  }
+
+  .pages-wrapper { position: fixed; inset: 0; overflow: hidden; }
+
+  .page {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 60px 40px 100px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(30px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .page.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+  .page.exit { opacity: 0; transform: translateY(-30px); transition: opacity 0.35s ease, transform 0.35s ease; }
+
+  /* COVER */
+  #page-cover { justify-content: flex-end; padding-bottom: 120px; }
+  .cover-en {
+    font-family: 'EB Garamond', serif;
+    font-size: 14px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 14px;
+  }
+  .cover-title {
+    font-size: clamp(52px, 14vw, 76px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.05;
+    margin-bottom: 24px;
+  }
+  .cover-line { width: 28px; height: 1px; background: #444; margin-bottom: 24px; }
+  .cover-sub {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--gray);
+    letter-spacing: 0.06em;
+    line-height: 2;
+    margin-bottom: 48px;
+  }
+  .start-btn {
+    background: none;
+    border: 1px solid #555;
+    color: var(--white);
+    font-family: 'Noto Serif TC', serif;
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    padding: 13px 34px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .start-btn:hover { border-color: var(--white); background: rgba(255,255,255,0.05); }
+
+  /* QUESTION */
+  .q-num {
+    font-family: 'EB Garamond', serif;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: #555;
+    margin-bottom: 26px;
+  }
+  .q-label {
+    font-size: clamp(20px, 5.5vw, 26px);
+    font-weight: 300;
+    line-height: 1.55;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .q-label-en {
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    font-style: italic;
+    color: #555;
+    margin-bottom: 30px;
+    line-height: 1.6;
+  }
+
+  /* OPTIONS */
+  .options {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+  .options::-webkit-scrollbar { width: 1px; }
+  .options::-webkit-scrollbar-thumb { background: #2a2a2a; }
+
+  .opt-input { display: none; }
+  .opt-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #1e1e1e;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: #666;
+    transition: color 0.15s;
+    user-select: none;
+  }
+  .opt-label:hover { color: #aaa; }
+  .opt-input:checked + .opt-label { color: var(--white); }
+
+  .opt-marker {
+    width: 17px; height: 17px;
+    border: 1px solid #333;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    color: transparent;
+    transition: all 0.15s;
+  }
+  .opt-marker::after { content: '✓'; }
+  .opt-input:checked + .opt-label .opt-marker {
+    border-color: var(--white);
+    background: var(--white);
+    color: var(--black);
+  }
+  .opt-en {
+    font-family: 'EB Garamond', serif;
+    font-size: 13px;
+    font-style: italic;
+    color: #444;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .opt-input:checked + .opt-label .opt-en { color: #888; }
+
+  /* TEXTAREA */
+  .open-textarea {
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #2a2a2a;
+    color: var(--white);
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px;
+    font-weight: 300;
+    line-height: 1.9;
+    padding: 8px 0 14px;
+    resize: none;
+    outline: none;
+    min-height: 90px;
+    letter-spacing: 0.04em;
+    transition: border-color 0.2s;
+  }
+  .open-textarea:focus { border-bottom-color: #555; }
+  .open-textarea::placeholder {
+    color: #333;
+    font-style: italic;
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+  }
+
+  /* NAV */
+  .nav-row {
+    position: fixed;
+    bottom: 44px;
+    left: 40px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .nav-next {
+    background: none;
+    border: none;
+    color: #444;
+    font-family: 'EB Garamond', serif;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    transition: color 0.2s;
+  }
+  .nav-next.ready { color: var(--white); }
+  .nav-arrow {
+    width: 36px;
+    height: 1px;
+    background: currentColor;
+    position: relative;
+    transition: width 0.2s;
+  }
+  .nav-arrow::after {
+    content: '';
+    position: absolute;
+    right: 0; top: -3px;
+    width: 7px; height: 7px;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+    transform: rotate(45deg);
+  }
+  .nav-next.ready:hover .nav-arrow { width: 52px; }
+
+  /* PROGRESS */
+  .progress-track {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: #1a1a1a;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #444;
+    transition: width 0.5s ease;
+  }
+
+  /* LOADING */
+  #page-loading { align-items: center; justify-content: center; text-align: center; gap: 28px; }
+  .dots { display: flex; gap: 9px; justify-content: center; }
+  .dots span {
+    width: 3px; height: 3px;
+    background: #555;
+    border-radius: 50%;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  .loading-label {
+    font-size: 12px;
+    font-weight: 300;
+    color: #555;
+    letter-spacing: 0.14em;
+    line-height: 2.2;
+  }
+
+  /* RESPONSE */
+  #page-response { align-items: center; justify-content: center; text-align: center; padding: 60px 44px 80px; }
+  .resp-eyebrow {
+    font-family: 'EB Garamond', serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: #444;
+    text-transform: uppercase;
+    margin-bottom: 44px;
+  }
+  .resp-zh {
+    font-size: clamp(16px, 4.5vw, 20px);
+    font-weight: 300;
+    line-height: 2.3;
+    letter-spacing: 0.08em;
+    white-space: pre-line;
+    max-width: 300px;
+  }
+  .resp-line { width: 20px; height: 1px; background: #333; margin: 32px auto; }
+  .resp-en {
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    font-style: italic;
+    color: var(--gray);
+    line-height: 2;
+    white-space: pre-line;
+    max-width: 280px;
+  }
+  .resp-thanks {
+    margin-top: 52px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: #3a3a3a;
+    line-height: 2.2;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.8; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in       { animation: fadeIn 1s ease 0.1s both; }
+  .fade-in-delay { animation: fadeIn 1s ease 0.6s both; }
+</style>
+</head>
+<body>
+<div class="pages-wrapper">
+
+  <!-- COVER -->
+  <div class="page active" id="page-cover">
+    <div class="cover-en">Body as Experiment · Gin-Yung Solo Exhibition</div>
+    <div class="cover-title">觀展<br>回饋</div>
+    <div class="cover-line"></div>
+    <div class="cover-sub">
+      五個問題，不超過兩分鐘<br>
+      <span style="font-family:'EB Garamond',serif;font-style:italic">Five questions, under two minutes</span>
+    </div>
+    <button class="start-btn" onclick="startForm()">開始 · Begin</button>
+  </div>
+
+  <!-- Q1 -->
+  <div class="page" id="page-q1">
+    <div class="q-num">01 — 05</div>
+    <div class="q-label">這次展覽給你的感受<br>較接近下列何種？</div>
+    <div class="q-label-en">Which of the following best describes your feeling? (multiple choice)</div>
+    <div class="options">
+      <input class="opt-input" type="checkbox" name="feelings" value="被吸引" id="f1">
+      <label class="opt-label" for="f1"><span class="opt-marker"></span>被吸引<span class="opt-en">Drawn in</span></label>
+      <input class="opt-input" type="checkbox" name="feelings" value="好奇" id="f2">
+      <label class="opt-label" for="f2"><span class="opt-marker"></span>好奇<span class="opt-en">Curious</span></label>
+      <input class="opt-input" type="checkbox" name="feelings" value="有點不舒服" id="f3">
+      <label class="opt-label" for="f3"><span class="opt-marker"></span>有點不舒服<span class="opt-en">Uncomfortable</span></label>
+      <input class="opt-input" type="checkbox" name="feelings" value="被挑戰" id="f4">
+      <label class="opt-label" for="f4"><span class="opt-marker"></span>被挑戰<span class="opt-en">Challenged</span></label>
+      <input class="opt-input" type="checkbox" name="feelings" value="被理解" id="f5">
+      <label class="opt-label" for="f5"><span class="opt-marker"></span>被理解<span class="opt-en">Understood</span></label>
+      <input class="opt-input" type="checkbox" name="feelings" value="想反思" id="f6">
+      <label class="opt-label" for="f6"><span class="opt-marker"></span>想反思<span class="opt-en">Reflective</span></label>
+      <input class="opt-input" type="checkbox" name="feelings" value="沒特別感覺" id="f7">
+      <label class="opt-label" for="f7"><span class="opt-marker"></span>沒特別感覺<span class="opt-en">No particular feeling</span></label>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="page" id="page-q2">
+    <div class="q-num">02 — 05</div>
+    <div class="q-label">哪一部分<br>最吸引你？</div>
+    <div class="q-label-en">Which part attracted you most?</div>
+    <div class="options">
+      <input class="opt-input" type="radio" name="area" value="攝影師合作作品（左牆）" id="a1">
+      <label class="opt-label" for="a1"><span class="opt-marker"></span>攝影師合作作品（左牆）<span class="opt-en">Left wall</span></label>
+      <input class="opt-input" type="radio" name="area" value="刷牙鏡" id="a2">
+      <label class="opt-label" for="a2"><span class="opt-marker"></span>刷牙鏡<span class="opt-en">Toothbrushing mirror</span></label>
+      <input class="opt-input" type="radio" name="area" value="刷牙自拍牆（右牆）" id="a3">
+      <label class="opt-label" for="a3"><span class="opt-marker"></span>刷牙自拍牆（右牆）<span class="opt-en">Right wall</span></label>
+      <input class="opt-input" type="radio" name="area" value="本次自拍作品（主牆）" id="a4">
+      <label class="opt-label" for="a4"><span class="opt-marker"></span>本次自拍作品（主牆）<span class="opt-en">Main wall</span></label>
+      <input class="opt-input" type="radio" name="area" value="留言文字區" id="a5">
+      <label class="opt-label" for="a5"><span class="opt-marker"></span>留言文字區<span class="opt-en">Comment / text area</span></label>
+      <input class="opt-input" type="radio" name="area" value="都差不多" id="a6">
+      <label class="opt-label" for="a6"><span class="opt-marker"></span>都差不多<span class="opt-en">About the same</span></label>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="page" id="page-q3">
+    <div class="q-num">03 — 05</div>
+    <div class="q-label">你是怎麼知道<br>這次展覽的？</div>
+    <div class="q-label-en">How did you hear about this exhibition? (multiple choice)</div>
+    <div class="options">
+      <input class="opt-input" type="checkbox" name="source" value="Instagram" id="s1">
+      <label class="opt-label" for="s1"><span class="opt-marker"></span>Instagram</label>
+      <input class="opt-input" type="checkbox" name="source" value="Threads" id="s2">
+      <label class="opt-label" for="s2"><span class="opt-marker"></span>Threads</label>
+      <input class="opt-input" type="checkbox" name="source" value="朋友推薦" id="s3">
+      <label class="opt-label" for="s3"><span class="opt-marker"></span>朋友推薦<span class="opt-en">Friend</span></label>
+      <input class="opt-input" type="checkbox" name="source" value="路過看到" id="s4">
+      <label class="opt-label" for="s4"><span class="opt-marker"></span>路過看到<span class="opt-en">Walked by</span></label>
+      <input class="opt-input" type="checkbox" name="source" value="藝術空間公告" id="s5">
+      <label class="opt-label" for="s5"><span class="opt-marker"></span>藝術空間公告<span class="opt-en">Venue</span></label>
+      <input class="opt-input" type="checkbox" name="source" value="其他" id="s6">
+      <label class="opt-label" for="s6"><span class="opt-marker"></span>其他<span class="opt-en">Other</span></label>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="page" id="page-q4">
+    <div class="q-num">04 — 05</div>
+    <div class="q-label">這次展覽<br>讓你想到什麼？</div>
+    <div class="q-label-en">What did this exhibition make you think of?</div>
+    <textarea class="open-textarea" id="q4-text" rows="4"
+      placeholder="隨意寫，幾個字也可以 · anything goes"></textarea>
+  </div>
+
+  <!-- Q5 -->
+  <div class="page" id="page-q5">
+    <div class="q-num">05 — 05</div>
+    <div class="q-label">給藝術家的<br>一句話</div>
+    <div class="q-label-en">A message to the artist</div>
+    <textarea class="open-textarea" id="q5-text" rows="4"
+      placeholder="一句話就夠了 · one sentence is enough"></textarea>
+  </div>
+
+  <!-- LOADING -->
+  <div class="page" id="page-loading">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <div class="loading-label">
+      正在聆聽你的感受<br>
+      <span style="font-family:'EB Garamond',serif;font-style:italic">Listening…</span>
+    </div>
+  </div>
+
+  <!-- RESPONSE -->
+  <div class="page" id="page-response">
+    <div class="resp-eyebrow">給你的回應 · A response for you</div>
+    <div class="resp-zh fade-in" id="resp-zh"></div>
+    <div class="resp-line"></div>
+    <div class="resp-en fade-in-delay" id="resp-en"></div>
+    <div class="resp-thanks">
+      謝謝你今天的到來<br>
+      <span style="font-family:'EB Garamond',serif;font-style:italic">Thank you for being here</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<div class="nav-row" id="nav-row" style="display:none">
+  <button class="nav-next" id="nav-next" onclick="nextPage()">
+    繼續 · Continue <span class="nav-arrow"></span>
+  </button>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-track" id="progress-track" style="display:none">
+  <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+</div>
+
+<script>
+const GEMINI_KEY = "AIzaSyCvVLEPcyVihb6hwAdinvASTJ-yd94EtuM";
+const SHEET_URL  = "https://script.google.com/macros/s/AKfycbwK_wjuQ-MsLb3jsLVWCZ5Xu9FqtqKYVKno46DWYC7XkrUIsEEWC817G8fAzBLdI-qLoQ/exec";
+const PAGES = ['page-cover','page-q1','page-q2','page-q3','page-q4','page-q5','page-loading','page-response'];
+let current = 0;
+
+function showPage(idx) {
+  const prev = document.querySelector('.page.active');
+  if (prev) {
+    prev.classList.add('exit');
+    setTimeout(() => prev.classList.remove('active','exit'), 350);
+  }
+  setTimeout(() => document.getElementById(PAGES[idx]).classList.add('active'), 200);
+  current = idx;
+  updateNav();
+}
+
+function updateNav() {
+  const nav  = document.getElementById('nav-row');
+  const prog = document.getElementById('progress-track');
+  const fill = document.getElementById('progress-fill');
+  const btn  = document.getElementById('nav-next');
+  const isQ  = current >= 1 && current <= 5;
+  nav.style.display  = isQ ? 'flex' : 'none';
+  prog.style.display = isQ ? 'block' : 'none';
+  if (isQ) {
+    fill.style.width = ((current / 5) * 100) + '%';
+    btn.classList.toggle('ready', canProceed());
+  }
+}
+
+function canProceed() {
+  if (current === 1) return document.querySelectorAll('input[name="feelings"]:checked').length > 0;
+  if (current === 2) return !!document.querySelector('input[name="area"]:checked');
+  if (current === 3) return document.querySelectorAll('input[name="source"]:checked').length > 0;
+  return true;
+}
+
+document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => {
+  el.addEventListener('change', updateNav);
+});
+
+function startForm() { showPage(1); }
+
+async function nextPage() {
+  if (current >= 1 && current <= 4) { showPage(current + 1); return; }
+  if (current === 5) { showPage(6); await submitForm(); }
+}
+
+async function submitForm() {
+  const feelings   = [...document.querySelectorAll('input[name="feelings"]:checked')].map(i => i.value);
+  const area       = document.querySelector('input[name="area"]:checked')?.value || '';
+  const source     = [...document.querySelectorAll('input[name="source"]:checked')].map(i => i.value);
+  const impression = document.getElementById('q4-text').value.trim();
+  const message    = document.getElementById('q5-text').value.trim();
+
+  try {
+    const raw = await callGemini(feelings.join('、'), area, impression, message);
+    const parts = raw.split(/\n?---\n?/);
+    document.getElementById('resp-zh').textContent = parts[0].trim();
+    document.getElementById('resp-en').textContent = (parts[1] || '').trim().replace(/\*/g, '');
+    saveToSheet({ feelings, area, source, impression, message, geminiResponse: raw });
+    showPage(7);
+  } catch(e) {
+    document.getElementById('resp-zh').textContent = '謝謝你今天來到這裡。';
+    document.getElementById('resp-en').textContent = 'Thank you for coming today.';
+    showPage(7);
+  }
+}
+
+async function callGemini(feelings, area, impression, message) {
+  const prompt = `你是一位詩人，正在回應一位剛看完攝影展覽「以身試驗」的觀眾。
+展覽關於女性身體自主、日常自拍，以及網路上真實的騷擾與凝視留言。
+
+觀眾的回答：
+- 感受：${feelings || '未填寫'}
+- 最吸引的部分：${area || '未填寫'}
+- 腦海浮現：${impression || '（未填）'}
+- 對藝術家說：${message || '（未填）'}
+
+請用繁體中文寫一段詩意的回應（35–55字）。
+不要說教，不要解釋展覽，不要使用「展覽」或「作品」。
+只是輕柔帶有詩意的文字，讓這個人感覺被看見。
+
+然後寫 "---" 分隔，用英文寫同樣詩意的回應（25–40字）。`;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_KEY
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.92, maxOutputTokens: 280 }
+      })
+    }
+  );
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function saveToSheet(payload) {
+  try {
+    await fetch(SHEET_URL, { method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
